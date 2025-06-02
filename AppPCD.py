@@ -32,7 +32,7 @@ fitur_order = joblib.load("model/fitur_order.pkl")
 # Sidebar
 # ------------------------------
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg", width=200)
+    st.image("images/pisang_sample.jpg", width=200)
     st.markdown("### Pengaturan")
     model_option = st.selectbox("Pilih Model Klasifikasi", ["Random Forest", "SVM"])
     st.markdown("---")
