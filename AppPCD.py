@@ -48,7 +48,7 @@ if uploaded_file is not None:
     # Tombol prediksi
     if st.button("Prediksi Tingkat Kematangan"):
         with st.spinner("Memproses gambar dan mengekstraksi fitur..."):
-            fitur, kelas_segmentasi = ekstrak_semua_fitur(img)
+            fitur, kelas_segmentasi = ekstrak_semua_fitur(img, debug_mode=True)
             fitur_df = pd.DataFrame([fitur])
 
             if model_option == "Random Forest":
