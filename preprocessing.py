@@ -2,6 +2,7 @@ from PIL import Image
 from scipy.stats import skew, kurtosis
 import numpy as np
 import streamlit as st 
+import pandas as pd
 
 # ===================== FUNGSI DASAR =====================
 
@@ -197,53 +198,38 @@ def ekstrak_fitur_glcm(glcm):
 
 # ===================== FUNGSI UTAMA UNTUK DEPLOY =====================
 
-def ekstrak_semua_fitur(img: Image.Image, debug_mode=False) -> (dict, str):
-    # Resize gambar
+def ekstrak_semua_fitur(img, model, fitur_order):
+    
     img = img.resize((224, 224))
 
-    # Segmentasi untuk setiap kelas
+    # Segmentasi tiap kelas
     mask_r = segmentasi_hue_multi(img, [(30, 60)])
     mask_u = segmentasi_hue_multi(img, [(70, 130)])
     mask_o = segmentasi_overripe_komplit(img)
 
-    # Hitung total piksel aktif dari masing-masing mask
-    total_r = sum(map(sum, mask_r))
-    total_u = sum(map(sum, mask_u))
-    total_o = sum(map(sum, mask_o))
+    hasil = []
 
-    # Pilih kelas dengan mask terbesar
-    kelas = max(
-        [("ripe", total_r), ("unripe", total_u), ("overripe", total_o)],
-        key=lambda x: x[1]
-    )[0]
+    for kelas, mask in {
+        "ripe": mask_r,
+        "unripe": mask_u,
+        "overripe": mask_o
+    }.items():
+        fitur_warna = ekstraksi_fitur_warna(img, mask)
+        gray = segmentasi_ke_grayscale(img, mask)
+        glcm = hitung_glcm(gray)
+        fitur_glcm = ekstrak_fitur_glcm(glcm)
 
-    # DEBUG di Streamlit
-    if debug_mode:
-        st.subheader("🔍 Debug: Segmentasi & Analisis Mask")
-        st.write("Jumlah piksel aktif per kelas:")
-        st.write({
-            "Ripe": total_r,
-            "Unripe": total_u,
-            "Overripe": total_o
-        })
+        fitur = {**fitur_warna, **fitur_glcm}
+        fitur_df = pd.DataFrame([fitur])[fitur_order]  # pastikan urutan sesuai training
 
-        st.image(np.array(mask_r), caption="Mask Ripe", clamp=True)
-        st.image(np.array(mask_u), caption="Mask Unripe", clamp=True)
-        st.image(np.array(mask_o), caption="Mask Overripe", clamp=True)
+        proba = model.predict_proba(fitur_df)[0]
+        conf = np.max(proba)
+        pred_label = model.classes_[np.argmax(proba)]
 
-        st.markdown(f"<b>Deteksi kelas segmentasi dominan:</b> {kelas.upper()}", unsafe_allow_html=True)
+        hasil.append((kelas, pred_label, conf, fitur, proba))
 
-    # Ambil mask yang sesuai
-    mask = {"ripe": mask_r, "unripe": mask_u, "overripe": mask_o}[kelas]
+    # Ambil hasil prediksi dengan confidence tertinggi
+    hasil_terbaik = max(hasil, key=lambda x: x[2])
+    kelas_mask, prediksi, confidence, fitur_final, probas = hasil_terbaik
 
-    # Ekstraksi fitur warna
-    fitur_warna = ekstraksi_fitur_warna(img, mask)
-
-    # Ekstraksi fitur tekstur
-    gray_array = segmentasi_ke_grayscale(img, mask)
-    glcm = hitung_glcm(gray_array)
-    fitur_glcm = ekstrak_fitur_glcm(glcm)
-
-    # Gabungkan semua fitur
-    fitur = {**fitur_warna, **fitur_glcm}
-    return fitur, kelas
+    return fitur_final, prediksi, kelas_mask, probas
