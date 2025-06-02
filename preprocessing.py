@@ -1,6 +1,7 @@
 from PIL import Image
 from scipy.stats import skew, kurtosis
 import numpy as np
+import streamlit as st 
 
 # ===================== FUNGSI DASAR =====================
 
