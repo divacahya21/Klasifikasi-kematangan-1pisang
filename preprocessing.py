@@ -196,33 +196,53 @@ def ekstrak_fitur_glcm(glcm):
 
 # ===================== FUNGSI UTAMA UNTUK DEPLOY =====================
 
-def ekstrak_semua_fitur(img: Image.Image) -> (dict, str):
-    # Resize dulu
+def ekstrak_semua_fitur(img: Image.Image, debug_mode=False) -> (dict, str):
+    # Resize gambar
     img = img.resize((224, 224))
 
-    # Buat semua mask
+    # Segmentasi untuk setiap kelas
     mask_r = segmentasi_hue_multi(img, [(30, 60)])
     mask_u = segmentasi_hue_multi(img, [(70, 130)])
     mask_o = segmentasi_overripe_komplit(img)
 
-    # Hitung piksel aktif
+    # Hitung total piksel aktif dari masing-masing mask
     total_r = sum(map(sum, mask_r))
     total_u = sum(map(sum, mask_u))
     total_o = sum(map(sum, mask_o))
 
+    # Pilih kelas dengan mask terbesar
     kelas = max(
         [("ripe", total_r), ("unripe", total_u), ("overripe", total_o)],
         key=lambda x: x[1]
     )[0]
 
-    # Ambil mask dominan
+    # DEBUG di Streamlit
+    if debug_mode:
+        st.subheader("🔍 Debug: Segmentasi & Analisis Mask")
+        st.write("Jumlah piksel aktif per kelas:")
+        st.write({
+            "Ripe": total_r,
+            "Unripe": total_u,
+            "Overripe": total_o
+        })
+
+        st.image(np.array(mask_r), caption="Mask Ripe", clamp=True)
+        st.image(np.array(mask_u), caption="Mask Unripe", clamp=True)
+        st.image(np.array(mask_o), caption="Mask Overripe", clamp=True)
+
+        st.markdown(f"<b>Deteksi kelas segmentasi dominan:</b> {kelas.upper()}", unsafe_allow_html=True)
+
+    # Ambil mask yang sesuai
     mask = {"ripe": mask_r, "unripe": mask_u, "overripe": mask_o}[kelas]
 
-    # Ekstraksi
+    # Ekstraksi fitur warna
     fitur_warna = ekstraksi_fitur_warna(img, mask)
+
+    # Ekstraksi fitur tekstur
     gray_array = segmentasi_ke_grayscale(img, mask)
     glcm = hitung_glcm(gray_array)
     fitur_glcm = ekstrak_fitur_glcm(glcm)
 
+    # Gabungkan semua fitur
     fitur = {**fitur_warna, **fitur_glcm}
     return fitur, kelas
