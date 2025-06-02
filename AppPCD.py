@@ -1,12 +1,13 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-import joblib
 import pandas as pd
+import joblib
+
 from preprocessing import ekstrak_semua_fitur
 
 # ------------------------------
-# Konfigurasi tampilan Streamlit
+# Konfigurasi Tampilan
 # ------------------------------
 st.set_page_config(
     page_title="Klasifikasi Kematangan Pisang 🍌",
@@ -21,10 +22,11 @@ st.markdown(
 st.markdown("<hr>", unsafe_allow_html=True)
 
 # ------------------------------
-# Load model
+# Load Model & Fitur Order
 # ------------------------------
 model_rf = joblib.load("model/rf_model.pkl")
 model_svm = joblib.load("model/svm_model.pkl")
+fitur_order = joblib.load("model/fitur_order.pkl")
 
 # ------------------------------
 # Sidebar
@@ -34,44 +36,37 @@ with st.sidebar:
     st.markdown("### Pengaturan")
     model_option = st.selectbox("Pilih Model Klasifikasi", ["Random Forest", "SVM"])
     st.markdown("---")
-    st.info("Silakan unggah gambar pisang dari perangkat Anda untuk diklasifikasikan tingkat kematangannya.")
+    st.info("Unggah gambar pisang untuk diklasifikasikan tingkat kematangannya berdasarkan segmentasi warna.")
 
 # ------------------------------
-# Upload gambar
+# Upload Gambar
 # ------------------------------
-uploaded_file = st.file_uploader("Unggah gambar pisang di sini", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Unggah gambar pisang", type=["jpg", "jpeg", "png"])
 
-if uploaded_file is not None:
+if uploaded_file:
     img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="Gambar yang Diupload", use_column_width=True)
 
-    # Tombol prediksi
     if st.button("Prediksi Tingkat Kematangan"):
-        with st.spinner("Memproses gambar dan mengekstraksi fitur..."):
-            fitur, kelas_segmentasi = ekstrak_semua_fitur(img, debug_mode=True)
-            fitur_df = pd.DataFrame([fitur])
+        with st.spinner("Mengekstraksi fitur dan melakukan prediksi..."):
+            model = model_rf if model_option == "Random Forest" else model_svm
 
-            if model_option == "Random Forest":
-                hasil_prediksi = model_rf.predict(fitur_df)[0]
-                proba = model_rf.predict_proba(fitur_df)[0]
-                label_list = model_rf.classes_
-            else:
-                hasil_prediksi = model_svm.predict(fitur_df)[0]
-                proba = model_svm.predict_proba(fitur_df)[0]
-                label_list = model_svm.classes_
+            fitur, hasil_prediksi, kelas_mask, proba = ekstrak_semua_fitur(img, model, fitur_order)
 
-        # Tampilkan hasil
-        st.success(f"Hasil Klasifikasi: **{hasil_prediksi.upper()}**")
-        st.markdown(f"<p style='color: gray;'>*Deteksi awal dari segmentasi: <b>{kelas_segmentasi.upper()}</b></p>", unsafe_allow_html=True)
+        st.success(f"Hasil Prediksi: **{hasil_prediksi.upper()}** (dari mask: {kelas_mask})")
 
-        # Tampilkan probabilitas
+        # Probabilitas
         st.markdown("### Probabilitas Prediksi")
-        prob_df = pd.DataFrame({
-            "Kelas": label_list,
+        df_proba = pd.DataFrame({
+            "Kelas": model.classes_,
             "Probabilitas": proba
         }).sort_values("Probabilitas", ascending=False)
+        st.bar_chart(df_proba.set_index("Kelas"))
 
-        st.bar_chart(data=prob_df.set_index("Kelas"))
+        # Fitur
+        st.markdown("### Fitur yang Diekstrak")
+        df_fitur = pd.DataFrame([fitur])
+        st.dataframe(df_fitur)
 
 else:
     st.markdown("<i>Belum ada gambar yang diunggah.</i>", unsafe_allow_html=True)
