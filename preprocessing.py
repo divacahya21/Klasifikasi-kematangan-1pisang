@@ -4,7 +4,6 @@ import numpy as np
 import streamlit as st 
 import pandas as pd
 
-# ===================== FUNGSI DASAR =====================
 
 def gambar_ke_array(img):
     lebar, tinggi = img.size
@@ -28,7 +27,6 @@ def rgb_ke_hsv_pixel(r, g, b):
 
     return h
 
-# ===================== SEGMENTASI =====================
 
 def segmentasi_hue_multi(img, hue_ranges):
     rgb_array = gambar_ke_array(img)
@@ -101,7 +99,6 @@ def segmentasi_overripe_komplit(img):
     final = gabungkan_mask(combined, mask3)
     return morfologi_lengkap(final, 3)
 
-# ===================== EKSTRAKSI FITUR =====================
 
 def ekstraksi_fitur_warna(img, mask):
     rgb_array = gambar_ke_array(img)
@@ -196,7 +193,6 @@ def ekstrak_fitur_glcm(glcm):
         "Correlation": correlation
     }
 
-# ===================== FUNGSI UTAMA UNTUK DEPLOY =====================
 
 def ekstrak_semua_fitur(img, model, fitur_order):
     
@@ -228,7 +224,6 @@ def ekstrak_semua_fitur(img, model, fitur_order):
 
         hasil.append((kelas, pred_label, conf, fitur, proba))
 
-    # Ambil hasil prediksi dengan confidence tertinggi
     hasil_terbaik = max(hasil, key=lambda x: x[2])
     kelas_mask, prediksi, confidence, fitur_final, probas = hasil_terbaik
 
