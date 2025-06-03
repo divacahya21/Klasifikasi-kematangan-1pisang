@@ -6,9 +6,6 @@ import joblib
 
 from preprocessing import ekstrak_semua_fitur
 
-# ------------------------------
-# Konfigurasi Tampilan
-# ------------------------------
 st.set_page_config(
     page_title="Klasifikasi Kematangan Pisang 🍌",
     layout="centered",
@@ -21,16 +18,10 @@ st.markdown(
 )
 st.markdown("<hr>", unsafe_allow_html=True)
 
-# ------------------------------
-# Load Model & Fitur Order
-# ------------------------------
 model_rf = joblib.load("model/rf_model.pkl")
 model_svm = joblib.load("model/svm_model.pkl")
 fitur_order = joblib.load("model/fitur_order.pkl")
 
-# ------------------------------
-# Sidebar
-# ------------------------------
 with st.sidebar:
     st.image("images/pisang_sample.jpg", width=500)
     st.markdown("### Pengaturan")
@@ -38,9 +29,6 @@ with st.sidebar:
     st.markdown("---")
     st.info("Unggah gambar pisang untuk diklasifikasikan tingkat kematangannya berdasarkan segmentasi warna.")
 
-# ------------------------------
-# Upload Gambar
-# ------------------------------
 uploaded_file = st.file_uploader("Unggah gambar pisang", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
@@ -71,8 +59,5 @@ if uploaded_file:
 else:
     st.markdown("<i>Belum ada gambar yang diunggah.</i>", unsafe_allow_html=True)
 
-# ------------------------------
-# Footer
-# ------------------------------
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>© 2025 - Projek PCD Pisang - Streamlit Deployment</p>", unsafe_allow_html=True)
